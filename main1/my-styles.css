@@ -1,0 +1,32 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+.card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.card-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.title-field {
+    margin-bottom: 10px;
+}
+
+.done-button {
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.done-button:hover {
+    background-color: #3e8e41;
+}
