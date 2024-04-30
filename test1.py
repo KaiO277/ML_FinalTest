@@ -2,12 +2,14 @@ from tkinter import *
 import tkinter as tk
 from tkinter import filedialog, ttk
 import csv
-
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import accuracy_score, mean_squared_error, r2_score
+from sklearn.metrics import accuracy_score, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import OneHotEncoder 
+
 
 csv_columns = []
 csv_dt = []
@@ -22,10 +24,33 @@ def load_csv_file():
             csv_data = csv.reader(file)
             csv_dt = pd.read_csv(file_path)
             csv_columns = next(csv_data)
+
         target_combobox["values"] = csv_columns
 
         update_input_listbox()
         load_table()
+
+        temp.delete('1.0', END)
+        temp.insert(END, get_info_text())
+
+        execution_button.grid()
+
+
+def get_info_text():
+    info_text = f"Số dòng: {len(csv_dt)}\nSố cột: {len(csv_dt.columns)}\n\nKiểu dữ liệu của mỗi cột:\n"
+    for column, dtype in csv_dt.dtypes.items():
+        info_text += f"{column}: {dtype}\n"
+
+    missing_values = csv_dt.isnull().sum()
+    info_text += "\nSố lượng giá trị thiếu trong mỗi cột:\n"
+    for column, missing_count in missing_values.items():
+        info_text += f"{column}: {missing_count}\n"
+
+    data_preview = "Một số dữ liệu từ file CSV:\n\n"
+    data_preview += str(csv_dt.head())
+    info_text += "\n\n" + data_preview
+
+    return info_text
 
 
 def update_input_listbox():
@@ -54,10 +79,23 @@ def remove_variable():
 
 
 def execute_model():
+    global csv_dt  # Thêm dòng này để sử dụng biến csv_dt từ phạm vi toàn cục
+
     target_variable = target_combobox.get()
     input_variables = selected_listbox.get(0, END)
     input_variables = list(input_variables)
     model = model_combobox.get()
+
+    if not input_variables:
+        result_text = "Vui lòng chọn ít nhất một biến đầu vào."
+        temp1.delete('1.0', END)
+        temp1.insert(END, result_text)
+        return
+
+    for column in input_variables:
+        if csv_dt[column].dtype == object:
+            # Thực hiện mã hóa one-hot cho các biến phân loại
+            csv_dt = pd.get_dummies(csv_dt, columns=[column])
 
     X = csv_dt[input_variables]
     y = csv_dt[target_variable]
@@ -70,7 +108,6 @@ def execute_model():
         model_train = LogisticRegression()
     elif model == "KNN":
         model_train = KNeighborsClassifier()
-
     elif model == "Linear Regression":
         model_train = LinearRegression()
 
@@ -82,29 +119,31 @@ def execute_model():
     ):
         try:
             accuracy = accuracy_score(y_test, y_pred)
+            result_text = f"Accuracy : {accuracy:.2f}"
+            temp1.delete('1.0', END)
+            temp1.insert(END, result_text)
 
-            res.configure(text=f"Accuracy : {accuracy:.2f}")
-
-        except:
-            # res.configure(text=f"Accuracy : {0.00}")
-            print("error")
+        except Exception as e:
+            result_text = f"Error: {str(e)}"
+            temp1.delete('1.0', END)
+            temp1.insert(END, result_text)
 
     elif isinstance(model_train, LinearRegression):
-        r2 = str(r2_score(y_test, y_pred))
-        res.configure(text=f"Accuracy : {r2.format('.2f')}")
-
+        r2 = r2_score(y_test, y_pred)
+        result_text = f"R^2 Score : {r2:.2f}"
+        temp1.delete('1.0', END)
+        temp1.insert(END, result_text)
 
 def load_table():
     global csv_dt
-    temp.delete(1.0, END)  # Xóa nội dung hiện tại của vùng văn bản temp
-    temp.insert(END, csv_dt)  # Chèn dữ liệu từ csv_dt vào vùng văn bản temp
+    temp.delete(1.0, END)
+    temp.insert(END, csv_dt.head())
 
 
 root = Tk()
 width = 900
 height = 700
 
-# slider
 frame = Frame(root, bg="#eee", width=300, height=height)
 frame.grid(row=0, column=0, sticky=N + S + E + W)
 
@@ -166,15 +205,23 @@ content = Frame(root, bg="red", width=900, height=height)
 content.grid(row=0, column=1)
 
 temp = Text(content, width=900)
-temp.grid(row=1, column=0, sticky=W)
+temp.grid(row=0, column=0, sticky=W)
 
 temp_scrollbar_x = Scrollbar(content, orient=HORIZONTAL, command=temp.xview)
-temp_scrollbar_x.grid(row=2, column=0, sticky="we")
+temp_scrollbar_x.grid(row=1, column=0, sticky="we")
 
 temp.config(xscrollcommand=temp_scrollbar_x.set)
 
-res = Label(content, text="Result", width=25)
-res.grid(row=0, column=0, padx=5, pady=5, sticky=W)
+result_label = Label(content, text="Kết Quả", font=("Arial", 12, "bold"))
+result_label.grid(row=1, column=0, sticky=W)
+
+temp1 = Text(content, width=900)
+temp1.grid(row=2, column=0, sticky=W)
+
+temp_scrollbar_x1 = Scrollbar(content, orient=HORIZONTAL, command=temp1.xview)
+temp_scrollbar_x1.grid(row=3, column=0, sticky="we")
+
+temp1.config(xscrollcommand=temp_scrollbar_x1.set)
 
 setW = root.winfo_screenwidth()
 setH = root.winfo_screenheight()
